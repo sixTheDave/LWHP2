@@ -1,22 +1,52 @@
-Linux Hardening Points
-License: GNU Free Documentation License - Version 1.3, 3 November 2008 (for details, see LICENSE.txt)
-Author: six
+#### Ubuntu/Debian hardening points for workstations
+## License: GNU Free Documentation Licenense(for details, see LICENSE.txt)
+## Author: six
+
+=========
+0. Prepare hardware
+
+Prepare your BIOS settings, configure password for boot.
+
+Turn off WWAN, virtualization, camera, microphone and other devices if you don't want to use them. These can be turned back later.
+
+For privacy you probably want to turn off computrace, vPro and other backdoor-ish features.
+
+TPM Boot is also a good idea: https://safeboot.dev/
+
+Turn on tamper detection.
+
 
 
 =========
-Ubuntu/Debian hardening points for workstations
+1. During install
 
-- While installing, set up LVM with LUKS encryption (/boot cannot be encrypted, you can keep it on a pendrive or a cryptostick)
+- Make sure to install offline.
+
+- Minimal install, only what is needed
+
+- Set up LVM with LUKS encryption
+    Note 1: /boot cannot be encrypted, you can keep it on a pendrive or preferably a cryptostick or use TPM boot
+    Note 2: with LUKS you can turn on auto login for conviniency (why? if luks pass is breached, all is lost, pass reset is too simple)
 
 - Recommended mount options (add "discard" for SSD):
-    /home     rw,nodev,nouser,noexec,nosuid
-    /tmp      rw,nodev,noexec,nouser,nosuid
-    /var/tmp  rw,nodev,noexec,nouser,nosuid
-    /var      rw,nodev,nouser,nosuid
+    /home     rw,nodev,nouser,noexec,nosuid,discard
+    /tmp      rw,nodev,noexec,nouser,nosuid,discard
+    /var/tmp  rw,nodev,noexec,nouser,nosuid,discard
+    /var      rw,nodev,nouser,nosuid,discard
     # /var could be noexec too, but it would break apt that way.
+    # you can remount var before you use apt, eg with a simple script
     
-- Hide processes that the user don't need to see (fstab too)
-    proc    /proc    proc    defaults,hidepid=2  0  0
+    Hide processes that the user don't need to see (fstab too)
+        proc    /proc    proc    defaults,hidepid=2  0  0
+
+=========
+2. After install
+
+- Disable information sending to canonical
+- Disable "Connection checking"
+- "Never" send errorreports
+
+- Create a user which is not sudoer and use it for daily activities
 
 - Configure auto update to run everyday (on Debian "unattended-upgrades", on Ubuntu you can do it with Software Center settings)
     https://wiki.debian.org/UnattendedUpgrades
@@ -25,7 +55,7 @@ Ubuntu/Debian hardening points for workstations
     netstat -tulnp  # Check listening apps and if not needed remove them
     apt-get remove avahi-daemon # "remove" will keep config files, purge deletes everythin!
 
-- Disable USB Mass Storages if you don't need them
+- Disable USB Mass Storages if you don't need them (if you have other storage ports, you can turn these off against hw exploits)
     echo "blacklist usb-storage" | tee -a /etc/modprobe.d/blacklist.conf
     update-initramfs -u
 
@@ -43,25 +73,11 @@ Ubuntu/Debian hardening points for workstations
     -a exit,always -F arch=b32 -F euid=0 -S execve
 
 
-=====
-Kernel
-
-- If you are compiling the kernel you may want ideas from:
-    https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
-
-- Sysctl hardening options
-    echo -e '''kernel.dmesg_restrict=1\nkernel.kptr_restrict=1\nkernel.kexec_load_disabled=1\nkernel.yama.ptrace_scope=1\nuser.max_user_namespaces=0''' >> /etc/sysctl.conf
-
-
-=====
-Booting with TPM
-
-https://safeboot.dev/
-
-
-
-=====
-Firewall
+- Kernel hardening
+    - If you are compiling the kernel you may want ideas from:
+        https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
+    - Sysctl hardening options
+        echo -e '''kernel.dmesg_restrict=1\nkernel.kptr_restrict=1\nkernel.kexec_load_disabled=1\nkernel.yama.ptrace_scope=1\nuser.max_user_namespaces=0''' >> /etc/sysctl.conf
 
 
 - Configure firewall to DROP everything by default and allow only manadotory connections for root, aptitude, dns and the first user. Edit before apply!
@@ -112,15 +128,15 @@ Firewall
     echo "1" > /proc/sys/net/ipv6/conf/all/disable_ipv6
     echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
     
-=====
-Cron
-
+- Cron
 echo ALL >>/etc/cron.deny  # Check if you need to allow users!
 
 
 
 =====
-Remote management
+3. Remote management (if needed)
+
+- Use hw key for authentication
 
 - SSH for remote management if needed, example settings:
     Port 1234
@@ -136,7 +152,7 @@ Remote management
 
 
 =====
-Browser basics
+6. Browser security basics
 
 - Use the following extenstions for FireFox:
 NoScript
