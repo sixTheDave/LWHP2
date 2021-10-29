@@ -98,7 +98,7 @@ $IPT -A OUTPUT -s <ip> -m owner --uid-owner 1000 -j ACCEPT # Allow only if wireg
 $IPT -A OUTPUT -s <ip>/<mask> -m owner --uid-owner 1000 -j ACCEPT # Allow only if wireguard is up, wg net
 $IPT -A OUTPUT -d 127.0.0.1 -m owner --uid-owner 1000 -j ACCEPT # Local, eg for burp
 $IPT -A OUTPUT -d 192.168.0.0/16 -m owner --uid-owner 1000 -j ACCEPT # Local
-$IPT -A OUTPUT -d 172.16.0.0/20 -j ACCEPT # Local
+$IPT -A OUTPUT -d 172.16.0.0/12 -j ACCEPT # Local
 $IPT -A OUTPUT -d 10.0.0.0/8 -j ACCEPT # Local
 
 # Allow these users only
