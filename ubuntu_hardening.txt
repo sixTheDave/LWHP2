@@ -65,8 +65,9 @@ Turn on tamper detection.
    apt-get update
    apt-get install apparmor apparmor-profiles apparmor-utils apparmor-profiles-extra apparmor-easyprof firejail -y
    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="/&security=apparmor /' /etc/default/grub
-   sed -e 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=1/' /etc/default/grub
+   #sed -e 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=1/' /etc/default/grub ## This is 0 by default in latest ubuntu versions
    update-grub
+   # to turn on apparmor profiles, use: aa-enforce <program>
 
 - Use OSSEC or setup auditd if you'd like. You can also send the logs to remote syslog-ng. Example audit.rules for EXEC logs:
     -a exit,always -F arch=b64 -F euid=0 -S execve
@@ -82,44 +83,64 @@ Turn on tamper detection.
 
 - Configure firewall to DROP everything by default and allow only manadotory connections for root, aptitude, dns and the first user. Edit before apply!
 
-    #!/bin/bash
-    IPT=/sbin/iptables
-    $IPT -F
-    $IPT -F -t nat
-    $IPT -X
-    $IPT -N Allower
-    $IPT -A OUTPUT -j Allower
-    
-    $IPT -A Allower -m owner --uid-owner 0 -j ACCEPT
-    $IPT -A Allower -m owner --uid-owner 1000 -j ACCEPT
-    $IPT -A Allower -m owner --uid-owner 105 -j ACCEPT    # Aptitude
-    $IPT -A OUTPUT -m owner --uid-owner 112 -d 94.247.43.254 -p udp --dport 53 -j ACCEPT    # DNS, https://www.opennic.org/
-    
-    $IPT -A INPUT --in-interface lo -j ACCEPT
-    $IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-    $IPT -P OUTPUT DROP
-    $IPT -P INPUT DROP
-    $IPT -P FORWARD DROP
+- Example of iptables firwall and Wireguard VPN (apt install wireguard -y)
+
+#!/bin/bash
+IPT=/sbin/iptables
+$IPT -F
+$IPT -F -t nat
+$IPT -X
+$IPT -N Allower
+$IPT -A OUTPUT -j Allower
+
+# Allow locals
+$IPT -A OUTPUT -s <ip> -m owner --uid-owner 1000 -j ACCEPT # Allow only if wireguard is up, wg local ip
+$IPT -A OUTPUT -s <ip>/<mask> -m owner --uid-owner 1000 -j ACCEPT # Allow only if wireguard is up, wg net
+$IPT -A OUTPUT -d 127.0.0.1 -m owner --uid-owner 1000 -j ACCEPT # Local, eg for burp
+$IPT -A OUTPUT -d 192.168.0.0/16 -m owner --uid-owner 1000 -j ACCEPT # Local
+$IPT -A OUTPUT -d 172.16.0.0/20 -j ACCEPT # Local
+$IPT -A OUTPUT -d 10.0.0.0/8 -j ACCEPT # Local
+
+# Allow these users only
+$IPT -A Allower -m owner --uid-owner 0 -j ACCEPT
+$IPT -A Allower -m owner --uid-owner 1000 -j ACCEPT
+$IPT -A Allower -m owner --uid-owner 105 -j ACCEPT    # Aptitude
+$IPT -A Allower -m owner --uid-owner 112 -j ACCEPT    # dnsmasq
+#$IPT -A Allower -m owner --uid-owner 124 -j ACCEPT    # sambashare
+#$IPT -A OUTPUT -m owner --uid-owner 112 -d <ip> -p udp --dport 53 -j ACCEPT    # DNS, https://www.opennic.org/
+
+$IPT -A INPUT --in-interface lo -j ACCEPT
+$IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -A OUTPUT -d <ip> -j ACCEPT # wireguard ip
+
+# Drop everything else
+$IPT -P OUTPUT DROP
+$IPT -P INPUT DROP
+$IPT -P FORWARD DROP
 
 
-    IPT=/sbin/ip6tables
-    $IPT -F
-    $IPT -F -t nat
-    $IPT -X
-    $IPT -N Allower
-    $IPT -A OUTPUT -j Allower
-    
-    $IPT -A Allower -m owner --uid-owner 0 -j ACCEPT
-    $IPT -A Allower -m owner --uid-owner 1000 -j ACCEPT
-    $IPT -A Allower -m owner --uid-owner 105 -j ACCEPT    # Aptitude
-    $IPT -A OUTPUT -m owner --uid-owner 112 -d 94.247.43.254 -p udp --dport 53 -j ACCEPT    # DNS, https://www.opennic.org/
-    
-    $IPT -A INPUT --in-interface lo -j ACCEPT
-    $IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-    $IPT -P OUTPUT DROP
-    $IPT -P INPUT DROP
-    $IPT -P FORWARD DROP
+# Same logic follows for IPv6
+IPT=/sbin/ip6tables
+$IPT -F
+$IPT -F -t nat
+$IPT -X
+$IPT -N Allower
+$IPT -A OUTPUT -j Allower
 
+$IPT -A Allower -m owner --uid-owner 0 -j ACCEPT
+$IPT -A Allower -m owner --uid-owner 1000 -j ACCEPT
+$IPT -A Allower -m owner --uid-owner 105 -j ACCEPT    # Aptitude
+$IPT -A Allower -m owner --uid-owner 112 -j ACCEPT    # dnsmasq
+#$IPT -A OUTPUT -m owner --uid-owner 112 -d <ip> -p udp --dport 53 -j ACCEPT    # DNS, https://www.opennic.org/
+
+$IPT -A INPUT --in-interface lo -j ACCEPT
+$IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -P OUTPUT ACCEPT
+$IPT -P INPUT ACCEPT
+$IPT -P FORWARD ACCEPT
+
+# Make sure wireguard starts automatically
+wg-quick up wg0
 
 
 - Optionally, disable IPv6 || might be better to switch to IPv6 in 2021!
@@ -157,14 +178,15 @@ echo ALL >>/etc/cron.deny  # Check if you need to allow users!
 - Use the following extenstions for FireFox:
 NoScript
 HTTPS Everywhere
-Privacy Badger
+ClearURLs (remove tracking urls)
+WebRTC Disable (disables leaking info through WebRTC, eg. local ips)
+AdBlock
+User-Agent Switcher and Manager
 
+For password management: use BitWarden or LastPass with a hw key (eg. YubiKey or PitchFork).
 
-- Use the following extenstions for Chromium:
-ScriptBlock
-HTTPS Everywhere
-Privacy Badger
+I don't recommend to use Chrome at all, nor Chromium. Use Brave if you really need such a browser.
 
-You can also use privoxy in the place of Privacy Badger: https://www.privoxy.org/
+Note: Know that allowing javascript exposes you to hardcore tracking (eg. javascript audio API fingerprinting which is used by several big sites).
 
-Know that allowing javascript exposes you to hardcore tracking (eg. javascript audio API fingerprinting which is used by several big sites).
+You can test your browser privacy on: https://panopticlick.eff.org/
