@@ -1,5 +1,5 @@
-Linux and Windows Hardening Points
+Ubuntu Hardening Points
 
-Hardening guides can never be complete as every system needs a different configuration. Consideration it when using these documents and take the points written in this repository as guidelines.
+Hardening guides can never be complete as every system needs a different configuration. Consideration it when using these documents and take the points written in this repository as guidelines. Make sure to contemplate your threat model before you spend extraordinary resources on meaningless defense.
 
-We will provide compelte guides for desktop/laptop hardening.
+Guides provided for desktop/laptop hardening.
