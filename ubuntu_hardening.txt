@@ -2,10 +2,12 @@
 ## License: GNU Free Documentation Licenense(for details, see LICENSE.txt)
 ## Author: six
 
+Before starting, consider your threat model and possible combinations of cryptography sticks.
+
 =========
 0. Prepare hardware
 
-Prepare your BIOS settings, configure password for boot.
+Prepare your BIOS settings, configure password for boot/settings.
 
 Turn off WWAN, virtualization, camera, microphone and other devices if you don't want to use them. These can be turned back later.
 
@@ -16,7 +18,6 @@ TPM Boot is also a good idea: https://safeboot.dev/
 Turn on tamper detection.
 
 
-
 =========
 1. During install
 
@@ -24,9 +25,9 @@ Turn on tamper detection.
 
 - Minimal install, only what is needed
 
-- Set up LVM with LUKS encryption
+- Set up LVM with LUKS encryption OR with encrypted ZFS
     Note 1: /boot cannot be encrypted, you can keep it on a pendrive or preferably a cryptostick or use TPM boot
-    Note 2: with LUKS you can turn on auto login for conviniency (why? if luks pass is breached, all is lost, pass reset is too simple)
+    Note 2: with LUKS/ZFS encrypted you can turn on auto login for conviniency (why? if luks pass is breached, all is lost, pass reset is too simple)
 
 - Recommended mount options (add "discard" for SSD):
     /home     rw,nodev,nouser,noexec,nosuid,discard
@@ -176,6 +177,7 @@ echo ALL >>/etc/cron.deny  # Check if you need to allow users!
 6. Browser security basics
 
 - Use the following extenstions for FireFox:
+uBlockOrigin
 NoScript
 HTTPS Everywhere
 ClearURLs (remove tracking urls)
@@ -183,10 +185,8 @@ WebRTC Disable (disables leaking info through WebRTC, eg. local ips)
 AdBlock
 User-Agent Switcher and Manager
 
-For password management: use BitWarden or LastPass with a hw key (eg. YubiKey or PitchFork).
+For password management: use BitWarden with a hw key (eg. YubiKey or PitchFork).
 
 I don't recommend to use Chrome at all, nor Chromium. Use Brave if you really need such a browser.
 
-Note: Know that allowing javascript exposes you to hardcore tracking (eg. javascript audio API fingerprinting which is used by several big sites).
-
-You can test your browser privacy on: https://panopticlick.eff.org/
+Note: Know that allowing javascript exposes you to hardcore tracking possibilties (eg. javascript audio API fingerprinting which is used by several big sites). Check at https://coveryourtracks.eff.org/
